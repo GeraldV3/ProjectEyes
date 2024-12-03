@@ -22,7 +22,7 @@ const Home = () => {
         }}
         className="w-full flex justify-end items-end p-5"
       >
-        <Text className="text-black text-md font-JakartaBold">Skip</Text>
+        <Text className="text-blarck text-md font-JakartaBold">Skip</Text>
       </TouchableOpacity>
 
       <Swiper

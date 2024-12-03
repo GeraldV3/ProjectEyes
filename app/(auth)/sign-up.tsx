@@ -10,13 +10,31 @@ import InputField from "@/components/InputField";
 import { icons, images } from "@/constants";
 import { fetchAPI } from "@/lib/fetch";
 
+// Added types for form and verification states
+interface FormState {
+  parentName: string;
+  childName: string;
+  email: string;
+  password: string;
+  profilePicture: string;
+}
+
+interface VerificationState {
+  state: "default" | "pending" | "failed";
+  error: string;
+  code: string;
+}
+
 const SignUp = () => {
   const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
   const searchParams = useLocalSearchParams();
-  const { form, setForm } = useForm();
+  const { form, setForm } = useForm() as {
+    form: FormState;
+    setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  };
 
-  const [verification, setVerification] = useState({
+  const [verification, setVerification] = useState<VerificationState>({
     state: "default",
     error: "",
     code: "",
@@ -31,7 +49,7 @@ const SignUp = () => {
       console.log("Extracted filename:", filename); // Debug log
 
       if (filename && form.profilePicture !== filename) {
-        setForm((prev) => ({ ...prev, profilePicture: filename }));
+        setForm((prev: FormState) => ({ ...prev, profilePicture: filename })); // Typed 'prev'
         console.log("Updated form.profilePicture:", filename);
       }
     } else {
@@ -56,11 +74,12 @@ const SignUp = () => {
         password: form.password,
       });
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setVerification((prev) => ({ ...prev, state: "pending" }));
-      Alert.alert(
-        "Verification Sent",
-        "A verification code has been sent to your email.",
-      );
+      setVerification((prev: VerificationState) => ({
+        ...prev,
+        state: "pending",
+      }));
+
+      // Notification removed
     } catch (error: any) {
       console.error("Sign-up error:", error);
       const errorMessage =
@@ -83,7 +102,7 @@ const SignUp = () => {
           childName: form.childName,
           email: form.email,
           clerkId: completeSignUp.createdUserId,
-          profilePictureFilename: form.profilePicture, // Key that stores the profile picture filename
+          profilePictureFilename: form.profilePicture,
         };
 
         console.log("Payload being sent to backend:", payload); // Log the payload
@@ -101,19 +120,19 @@ const SignUp = () => {
         await setActive({ session: completeSignUp.createdSessionId });
         setShowSuccessModal(true);
       } else {
-        setVerification({
-          ...verification,
+        setVerification((prev: VerificationState) => ({
+          ...prev,
           error: "Verification failed. Please try again.",
           state: "failed",
-        });
+        })); // Typed 'prev'
       }
     } catch (err) {
       console.error("Verification error:", err);
-      setVerification({
-        ...verification,
+      setVerification((prev: VerificationState) => ({
+        ...prev,
         error: "Verification failed. Please try again.",
         state: "failed",
-      });
+      })); // Typed 'prev'
     }
   };
 
@@ -136,8 +155,9 @@ const SignUp = () => {
             placeholder="Enter parent name"
             icon={icons.person}
             value={form.parentName}
-            onChangeText={(value) =>
-              setForm((prev) => ({ ...prev, parentName: value }))
+            onChangeText={
+              (value) =>
+                setForm((prev: FormState) => ({ ...prev, parentName: value })) // Typed 'prev'
             }
           />
           <InputField
@@ -145,8 +165,9 @@ const SignUp = () => {
             placeholder="Enter child name"
             icon={icons.person}
             value={form.childName}
-            onChangeText={(value) =>
-              setForm((prev) => ({ ...prev, childName: value }))
+            onChangeText={
+              (value) =>
+                setForm((prev: FormState) => ({ ...prev, childName: value })) // Typed 'prev'
             }
           />
           <InputField
@@ -155,8 +176,9 @@ const SignUp = () => {
             icon={icons.email}
             textContentType="emailAddress"
             value={form.email}
-            onChangeText={(value) =>
-              setForm((prev) => ({ ...prev, email: value }))
+            onChangeText={
+              (value) =>
+                setForm((prev: FormState) => ({ ...prev, email: value })) // Typed 'prev'
             }
           />
           <InputField
@@ -166,11 +188,11 @@ const SignUp = () => {
             secureTextEntry
             textContentType="password"
             value={form.password}
-            onChangeText={(value) =>
-              setForm((prev) => ({ ...prev, password: value }))
+            onChangeText={
+              (value) =>
+                setForm((prev: FormState) => ({ ...prev, password: value })) // Typed 'prev'
             }
           />
-          {}
           <CustomButton
             title={form.profilePicture ? "Done Scanning" : "Child Face Scan"}
             onPress={() => router.push("/(auth)/face-recognition")}
@@ -181,7 +203,6 @@ const SignUp = () => {
             onPress={handleSignUp}
             className="mt-6"
           />
-
           <Link
             href="/sign-in"
             className="text-lg text-center text-general-200 mt-10"
@@ -202,8 +223,12 @@ const SignUp = () => {
               icon={icons.lock}
               keyboardType="numeric"
               value={verification.code}
-              onChangeText={(value) =>
-                setVerification((prev) => ({ ...prev, code: value }))
+              onChangeText={
+                (value) =>
+                  setVerification((prev: VerificationState) => ({
+                    ...prev,
+                    code: value,
+                  })) // Typed 'prev'
               }
             />
             {verification.error && (
@@ -229,7 +254,7 @@ const SignUp = () => {
               You have successfully verified your account.
             </Text>
             <CustomButton
-              title="Go back to Home"
+              title="Continue"
               className="mt-5"
               onPress={() => router.push("/(auth)/success")}
             />

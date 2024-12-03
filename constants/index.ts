@@ -9,6 +9,7 @@ import email from "@/assets/icons/email.png";
 import eyecross from "@/assets/icons/eyecross.png";
 import google from "@/assets/icons/google.png";
 import home from "@/assets/icons/home.png";
+import insights from "@/assets/icons/insights.png";
 import list from "@/assets/icons/list.png";
 import lock from "@/assets/icons/lock.png";
 import map from "@/assets/icons/map.png";
@@ -18,14 +19,17 @@ import person from "@/assets/icons/person.png";
 import pin from "@/assets/icons/pin.png";
 import point from "@/assets/icons/point.png";
 import profile from "@/assets/icons/profile.png";
+import scan from "@/assets/icons/scan.png";
 import search from "@/assets/icons/search.png";
 import selectedMarker from "@/assets/icons/selected-marker.png";
+import settings from "@/assets/icons/settings.png";
 import star from "@/assets/icons/star.png";
 import target from "@/assets/icons/target.png";
 import to from "@/assets/icons/to.png";
 import check from "@/assets/images/check.png";
 import face from "@/assets/images/face.png";
 import getStarted from "@/assets/images/get-started.png";
+import history from "@/assets/images/history.png";
 import message from "@/assets/images/message.png";
 import noResult from "@/assets/images/no-result.png";
 import onboarding1 from "@/assets/images/onboarding1.png";
@@ -45,6 +49,7 @@ export const images = {
   message,
   startBg,
   face,
+  history,
 };
 
 export const icons = {
@@ -73,6 +78,9 @@ export const icons = {
   star,
   target,
   to,
+  scan,
+  insights,
+  settings,
 };
 
 export const onboarding = [

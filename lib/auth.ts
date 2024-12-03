@@ -21,9 +21,9 @@ export const tokenCache = {
   },
   async saveToken(key: string, value: string) {
     try {
-      return SecureStore.setItemAsync(key, value);
-    } catch (err) {
-      return;
+      return await SecureStore.setItemAsync(key, value);
+    } catch (error) {
+      console.error("Error saving token:", error); // Use the error to log a message
     }
   },
 };

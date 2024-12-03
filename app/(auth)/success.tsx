@@ -11,7 +11,7 @@ const SuccessScreen: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace("/(auth)/start" as Href);
+      router.replace("/(tabs)/home" as Href);
     }, 5000);
 
     return () => clearTimeout(timer);
@@ -31,12 +31,11 @@ const SuccessScreen: React.FC = () => {
           Congratulations
         </Text>
         <Text className="text-center text-base text-[#4B5563] mb-10">
-          Your account is ready to use. You will be redirected to the home page
-          in a few seconds.
+          You are now signed in. Redirecting you to the home screen.
         </Text>
         <CustomButton
-          title="Back to Start"
-          onPress={() => router.replace("/(auth)/start" as Href)}
+          title="Continue to Home"
+          onPress={() => router.replace("/(tabs)/home" as Href)}
           className="bg-black w-64"
         ></CustomButton>
       </View>

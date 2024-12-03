@@ -2,49 +2,80 @@ import { neon } from "@neondatabase/serverless";
 
 export async function POST(request: Request) {
   try {
-    // Ensure DATABASE_URL is a string by throwing an error if it’s undefined
+    // Ensure the database URL is configured
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
       throw new Error("DATABASE_URL environment variable is not set.");
     }
 
-    // Pass the validated URL to neon
+    // Initialize the Neon connection
     const sql = neon(databaseUrl);
 
-    // Parse JSON data from the request
-    const { name, email, clerkId } = await request.json();
+    // Parse the incoming request body
+    const { parentName, childName, email, clerkId, profilePictureFilename } =
+      await request.json();
 
-    // Check for missing fields
-    if (!name || !email || !clerkId) {
+    // Validate required fields
+    if (!parentName || !childName || !email || !clerkId) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        JSON.stringify({ error: "Missing required fields." }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
-    // Insert data into the 'users' table
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(JSON.stringify({ error: "Invalid email format." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Insert the user into the database
     const response = await sql`
       INSERT INTO users (
-        name, 
-        email, 
-        clerk_id
-      ) 
-      VALUES (
-        ${name}, 
+        parent_name,
+        child_name,
+        email,
+        clerk_id,
+        profile_picture_url
+      ) VALUES (
+        ${parentName},
+        ${childName},
         ${email},
-        ${clerkId}
+        ${clerkId},
+        ${profilePictureFilename || null}
       )
-      RETURNING *;`; // Return inserted row(s) if needed
+      RETURNING *;
+    `;
 
-    // Return the response as JSON
-    return new Response(JSON.stringify({ data: response }), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
+    // Return the inserted user data
+    return new Response(
+      JSON.stringify({
+        message: "User created successfully.",
+        data: response,
+      }),
+      {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
     console.error("Error creating user:", error);
 
-    // Error response with 500 status
+    // Handle duplicate key error (e.g., email or clerk_id already exists)
+    if (error instanceof Error && error.message.includes("duplicate key")) {
+      return new Response(JSON.stringify({ error: "User already exists." }), {
+        status: 409,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle all other errors
     return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

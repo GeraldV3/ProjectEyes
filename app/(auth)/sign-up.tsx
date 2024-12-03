@@ -1,9 +1,10 @@
 import { useSignUp } from "@clerk/clerk-expo";
-import { Link, Href, router } from "expo-router";
-import { useState } from "react";
+import { useRouter, useLocalSearchParams, Link } from "expo-router";
+import { useState, useEffect } from "react";
 import { Alert, Image, ScrollView, Text, View } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
 
+import { useForm } from "@/app/(auth)/FormContext";
 import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import { icons, images } from "@/constants";
@@ -11,58 +12,94 @@ import { fetchAPI } from "@/lib/fetch";
 
 const SignUp = () => {
   const { isLoaded, signUp, setActive } = useSignUp();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const router = useRouter();
+  const searchParams = useLocalSearchParams();
+  const { form, setForm } = useForm();
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
   const [verification, setVerification] = useState({
     state: "default",
     error: "",
     code: "",
   });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const onSignUpPress = async () => {
-    if (!isLoaded) return;
+  useEffect(() => {
+    const imageUri = searchParams?.imageUri as string | undefined;
+
+    if (imageUri) {
+      const filename = imageUri.split("/").pop(); // Extract filename
+      console.log("Extracted filename:", filename); // Debug log
+
+      if (filename && form.profilePicture !== filename) {
+        setForm((prev) => ({ ...prev, profilePicture: filename }));
+        console.log("Updated form.profilePicture:", filename);
+      }
+    } else {
+      console.log("No imageUri found in searchParams");
+    }
+  }, [searchParams, form.profilePicture, setForm]);
+
+  const handleSignUp = async () => {
+    if (!isLoaded) {
+      return Alert.alert("Error", "Sign-up functionality is not loaded yet.");
+    }
+    if (!form.parentName || !form.childName || !form.email || !form.password) {
+      return Alert.alert(
+        "Incomplete Information",
+        "All fields must be completed.",
+      );
+    }
+
     try {
       await signUp.create({
         emailAddress: form.email,
         password: form.password,
       });
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setVerification({
-        ...verification,
-        state: "pending",
-      });
-    } catch (err: any) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.log(JSON.stringify(err, null, 2));
-      Alert.alert("Error", err.errors[0].longMessage);
+      setVerification((prev) => ({ ...prev, state: "pending" }));
+      Alert.alert(
+        "Verification Sent",
+        "A verification code has been sent to your email.",
+      );
+    } catch (error: any) {
+      console.error("Sign-up error:", error);
+      const errorMessage =
+        error.errors?.[0]?.longMessage || "An unknown error occurred.";
+      Alert.alert("Error", errorMessage);
     }
   };
+
   const onPressVerify = async () => {
     if (!isLoaded) return;
+
     try {
       const completeSignUp = await signUp.attemptEmailAddressVerification({
         code: verification.code,
       });
+
       if (completeSignUp.status === "complete") {
-        await fetchAPI("/(api)/user", {
+        const payload = {
+          parentName: form.parentName,
+          childName: form.childName,
+          email: form.email,
+          clerkId: completeSignUp.createdUserId,
+          profilePictureFilename: form.profilePicture, // Key that stores the profile picture filename
+        };
+
+        console.log("Payload being sent to backend:", payload); // Log the payload
+
+        const response = await fetchAPI("/(api)/user", {
           method: "POST",
-          body: JSON.stringify({
-            name: form.name,
-            email: form.email,
-            clerkId: completeSignUp.createdUserId,
-          }),
+          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "application/json",
+          },
         });
+
+        console.log("API Response:", response);
+
         await setActive({ session: completeSignUp.createdSessionId });
-        setVerification({
-          ...verification,
-          state: "success",
-        });
+        setShowSuccessModal(true);
       } else {
         setVerification({
           ...verification,
@@ -70,16 +107,16 @@ const SignUp = () => {
           state: "failed",
         });
       }
-    } catch (err: any) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
+    } catch (err) {
+      console.error("Verification error:", err);
       setVerification({
         ...verification,
-        error: err.errors[0].longMessage,
+        error: "Verification failed. Please try again.",
         state: "failed",
       });
     }
   };
+
   return (
     <ScrollView className="flex-1 bg-white">
       <View className="flex-1 bg-white">
@@ -87,20 +124,30 @@ const SignUp = () => {
           <Image
             source={images.signUpCar}
             className="z-0 w-full h-[250px] mt-5"
+            resizeMode="cover"
           />
         </View>
-
-        <Text className="text-2xl text-black font-JakartaBold absolute top-[240px] left-5">
+        <Text className="text-2xl text-black font-bold absolute top-[240px] left-5">
           Create Your Account
         </Text>
-
         <View className="p-5">
           <InputField
-            label="Name"
-            placeholder="Enter name"
+            label="Parent Name"
+            placeholder="Enter parent name"
             icon={icons.person}
-            value={form.name}
-            onChangeText={(value) => setForm({ ...form, name: value })}
+            value={form.parentName}
+            onChangeText={(value) =>
+              setForm((prev) => ({ ...prev, parentName: value }))
+            }
+          />
+          <InputField
+            label="Child Name"
+            placeholder="Enter child name"
+            icon={icons.person}
+            value={form.childName}
+            onChangeText={(value) =>
+              setForm((prev) => ({ ...prev, childName: value }))
+            }
           />
           <InputField
             label="Email"
@@ -108,27 +155,30 @@ const SignUp = () => {
             icon={icons.email}
             textContentType="emailAddress"
             value={form.email}
-            onChangeText={(value) => setForm({ ...form, email: value })}
+            onChangeText={(value) =>
+              setForm((prev) => ({ ...prev, email: value }))
+            }
           />
           <InputField
             label="Password"
             placeholder="Enter password"
             icon={icons.lock}
-            secureTextEntry={true}
+            secureTextEntry
             textContentType="password"
             value={form.password}
-            onChangeText={(value) => setForm({ ...form, password: value })}
+            onChangeText={(value) =>
+              setForm((prev) => ({ ...prev, password: value }))
+            }
           />
-
+          {}
           <CustomButton
-            title="Child Face Scan"
-            onPress={() => router.push("/(auth)/face-recognition" as Href)}
+            title={form.profilePicture ? "Done Scanning" : "Child Face Scan"}
+            onPress={() => router.push("/(auth)/face-recognition")}
             className="mt-6"
           />
-
           <CustomButton
             title="Sign Up"
-            onPress={onSignUpPress}
+            onPress={handleSignUp}
             className="mt-6"
           />
 
@@ -140,30 +190,20 @@ const SignUp = () => {
             <Text className="text-primary-500">Log In</Text>
           </Link>
         </View>
-
-        <ReactNativeModal
-          isVisible={verification.state === "pending"}
-          onModalHide={() => {
-            if (verification.state === "success") {
-              setShowSuccessModal(true);
-            }
-          }}
-        >
+        <ReactNativeModal isVisible={verification.state === "pending"}>
           <View className="bg-white px-7 py-9 rounded-2xl min-h-[300px]">
-            <Text className="font-JakartaExtraBold text-2xl mb-2">
-              Verification
-            </Text>
-            <Text className="font-Jakarta mb-5">
+            <Text className="font-bold text-2xl mb-2">Verification</Text>
+            <Text className="mb-5">
               We've sent a verification code to {form.email}.
             </Text>
             <InputField
-              label="Code"
+              label="Verification Code"
+              placeholder="Enter code"
               icon={icons.lock}
-              placeholder="12345"
-              value={verification.code}
               keyboardType="numeric"
-              onChangeText={(code) =>
-                setVerification({ ...verification, code })
+              value={verification.code}
+              onChangeText={(value) =>
+                setVerification((prev) => ({ ...prev, code: value }))
               }
             />
             {verification.error && (
@@ -178,23 +218,20 @@ const SignUp = () => {
             />
           </View>
         </ReactNativeModal>
-
         <ReactNativeModal isVisible={showSuccessModal}>
           <View className="bg-white px-7 py-9 rounded-2xl min-h-[300px]">
             <Image
               source={images.check}
-              className="w-[110px] h-[110px] mx-auto my-5"
+              style={{ width: 110, height: 110, alignSelf: "center" }}
             />
-            <Text className="text-3xl font-JakartaBold text-center">
-              Verified
-            </Text>
-            <Text className="text-base text-gray-400 font-Jakarta text-center mt-2">
+            <Text className="text-3xl font-bold text-center">Verified</Text>
+            <Text className="text-base text-gray-400 text-center mt-2">
               You have successfully verified your account.
             </Text>
             <CustomButton
-              title="Browse Home"
-              onPress={() => router.push("/(root)/(tabs)/home")}
+              title="Go back to Home"
               className="mt-5"
+              onPress={() => router.push("/(auth)/success")}
             />
           </View>
         </ReactNativeModal>
@@ -202,4 +239,5 @@ const SignUp = () => {
     </ScrollView>
   );
 };
+
 export default SignUp;

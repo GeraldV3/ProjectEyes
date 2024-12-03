@@ -1,6 +1,6 @@
-import { useRouter, Href, Link } from "expo-router"; // Move this to the top as per the ESLint rule
+import { useRouter, Href } from "expo-router"; // Move this to the top as per the ESLint rule
 import React from "react";
-import { Image, Text, View } from "react-native";
+import { Image, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import CustomButton from "@/components/CustomButton";
@@ -15,7 +15,7 @@ const Start: React.FC = () => {
       <View className="items-center justify-center mt-10">
         <Image
           source={images.startBg}
-          className="w-50 h-110 mt-10"
+          className="w-50 h-110 mt-15"
           resizeMode="contain"
         />
       </View>
@@ -32,14 +32,6 @@ const Start: React.FC = () => {
           className="border bg-white w-1/3"
           textColorClass="text-black"
         />
-      </View>
-
-      <View className="flex">
-        {/* The scanning page, to follow */}
-        {/* <Text className="text-gray-500 mt-4">Scan First</Text> */}
-        <Link href={"/(root)/scan" as Href} className="text-gray-500 mt-4">
-          <Text className="text-[18px]">Scan First</Text>
-        </Link>
       </View>
     </SafeAreaView>
   );
